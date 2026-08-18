@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinanzasControl - Dashboard Personal</title>
+    
+    <!-- Fuente Inter y CDN de Chart.js para los gráficos -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="./assets/css/style.css">
+</head>
+<body>
+
+    <div class="dashboard-container">
+        
+        <header class="header">
+            <h1>💰 Finanzas<span>Control</span></h1>
+            <p>Gestiona tus ingresos y gastos en tiempo real</p>
+        </header>
+
+        <section class="summary-cards">
+            <div class="card balance">
+                <span class="card-title">Balance Total</span>
+                <h2 id="total-balance">$0.00</h2>
+            </div>
+            <div class="card income">
+                <span class="card-title">Ingresos</span>
+                <h2 id="total-income">+$0.00</h2>
+            </div>
+            <div class="card expense">
+                <span class="card-title">Gastos</span>
+                <h2 id="total-expense">-$0.00</h2>
+            </div>
+        </section>
+
+        <div class="main-grid">
+            
+            <section class="card-form">
+                <h3>Nueva Transacción</h3>
+                <form id="transaction-form">
+                    <div class="input-group">
+                        <label for="description">Concepto</label>
+                        <input type="text" id="description" placeholder="Ej: Sueldo, Comida, Gasolina..." required>
+                    </div>
+
+                    <div class="input-row">
+                        <div class="input-group">
+                            <label for="amount">Monto ($)</label>
+                            <input type="number" id="amount" step="0.01" placeholder="0.00" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="type">Tipo</label>
+                            <select id="type" required>
+                                <option value="income">Ingreso (+)</option>
+                                <option value="expense" selected>Gasto (-)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="category">Categoría</label>
+                        <select id="category" required>
+                            <option value="Trabajo">💼 Trabajo / Sueldo</option>
+                            <option value="Comida">🍕 Comida / Restaurantes</option>
+                            <option value="Servicios">💡 Servicios / Casa</option>
+                            <option value="Transporte">🚗 Transporte / Gasolina</option>
+                            <option value="Entretenimiento">🎬 Entretenimiento</option>
+                            <option value="Otros">📦 Otros</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn-primary">Añadir Transacción</button>
+                </form>
+            </section>
+
+            <section class="card-chart">
+                <h3>Distribución de Gastos</h3>
+                <div class="chart-container">
+                    <canvas id="expenseChart"></canvas>
+                </div>
+            </section>
+
+        </div>
+
+        <section class="card-history">
+            <h3>Historial de Movimientos</h3>
+            <ul id="transaction-list" class="transaction-list">
+            </ul>
+        </section>
+
+    </div>
+
+    <script src="./assets/js/app.js"></script>
+</body>
+</html>
