@@ -1,7 +1,6 @@
 // ==========================================
-// 1. CONECTAR JAVASCRIPT CON EL HTML
+// 1. SELECCIÓN DE ELEMENTOS DEL DOM
 // ==========================================
-// Aquí "atrapamos" los elementos de la pantalla por su ID para poder manipularlos.
 const form = document.getElementById('transaction-form');
 const descriptionInput = document.getElementById('description');
 const amountInput = document.getElementById('amount');
@@ -14,80 +13,122 @@ const totalExpenseEl = document.getElementById('total-expense');
 const transactionListEl = document.getElementById('transaction-list');
 
 // ==========================================
-// 2. MEMORIA (LocalStorage)
+// 2. MEMORIA DE LA APLICACIÓN
 // ==========================================
-// Buscamos si ya hay datos guardados en el navegador. Si no hay nada, iniciamos una lista vacía [].
 let transactions = JSON.parse(localStorage.getItem('finanzas_transactions')) || [];
-let chartInstance = null; // Espacio para guardar nuestro gráfico de Chart.js
+let expenseChartInstance = null;
+let barChartInstance = null; // Añadimos una variable para el nuevo gráfico de barras
 
 // ==========================================
-// 3. FUNCIÓN PARA DIBUJAR EL GRÁFICO
+// 3. RENDERIZADO DE GRÁFICOS (Chart.js)
 // ==========================================
-function renderChart() {
-    const ctx = document.getElementById('expenseChart').getContext('2d');
+function renderCharts() {
+    const expenseCtx = document.getElementById('expenseChart').getContext('2d');
+    const barCtx = document.getElementById('barChart').getContext('2d');
 
-    // Filtramos solo los que son gastos (expense)
+    // --- Lógica del Gráfico de Rosca (Gastos por Categoría) ---
     const expenses = transactions.filter(t => t.type === 'expense');
     const categories = ['Trabajo', 'Comida', 'Servicios', 'Transporte', 'Entretenimiento', 'Otros'];
     
-    // Calculamos cuánto se gastó en cada categoría
     const totalsByCategory = categories.map(cat => {
         return expenses
             .filter(t => t.category === cat)
             .reduce((sum, t) => sum + t.amount, 0);
     });
 
-    // Si ya existe un gráfico, lo borramos para dibujar el nuevo actualizado
-    if (chartInstance) {
-        chartInstance.destroy(); 
+    if (expenseChartInstance) {
+        expenseChartInstance.destroy();
     }
 
-    // Creamos el gráfico de tipo 'doughnut' (rosca)
-    chartInstance = new Chart(ctx, {
+    expenseChartInstance = new Chart(expenseCtx, {
         type: 'doughnut',
         data: {
             labels: categories,
             datasets: [{
                 data: totalsByCategory,
                 backgroundColor: ['#38bdf8', '#f59e0b', '#ec4899', '#8b5cf6', '#10b981', '#64748b'],
-                borderWidth: 2,
-                borderColor: '#1e293b'
+                borderWidth: 0,
+                hoverOffset: 4
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            cutout: '75%', // Hace la rosca más delgada y moderna
             plugins: {
-                legend: { position: 'bottom', labels: { color: '#94a3b8' } }
+                legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 } } }
+            }
+        }
+    });
+
+    // --- Lógica del Gráfico de Barras (Ingresos vs Gastos) ---
+    const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+    const totalExpense = expenses.reduce((sum, t) => sum + t.amount, 0);
+
+    if (barChartInstance) {
+        barChartInstance.destroy();
+    }
+
+    barChartInstance = new Chart(barCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Comparativa Global'], // Etiqueta del eje X
+            datasets: [
+                {
+                    label: 'Ingresos',
+                    data: [totalIncome],
+                    backgroundColor: '#22c55e',
+                    borderRadius: 6, // Bordes redondeados en las barras
+                    barPercentage: 0.6
+                },
+                {
+                    label: 'Gastos',
+                    data: [totalExpense],
+                    backgroundColor: '#ef4444',
+                    borderRadius: 6,
+                    barPercentage: 0.6
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: '#232b3e' }, // Cuadrícula sutil
+                    ticks: { color: '#94a3b8' }
+                },
+                x: {
+                    grid: { display: false }, // Ocultamos la cuadrícula vertical
+                    ticks: { color: '#94a3b8' }
+                }
+            },
+            plugins: {
+                legend: { position: 'top', labels: { color: '#f8fafc' } }
             }
         }
     });
 }
 
 // ==========================================
-// 4. FUNCIÓN PARA ACTUALIZAR LOS NÚMEROS EN PANTALLA
+// 4. ACTUALIZACIÓN DE LA INTERFAZ
 // ==========================================
 function updateUI() {
-    // Sumamos todos los ingresos y todos los gastos
     const income = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
     const expense = transactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
-    
-    // El balance es lo que entra menos lo que sale
     const total = income - expense;
 
-    // Pintamos los números en el HTML con dos decimales
     totalBalanceEl.textContent = `$${total.toFixed(2)}`;
     totalIncomeEl.textContent = `+$${income.toFixed(2)}`;
     totalExpenseEl.textContent = `-$${expense.toFixed(2)}`;
 
-    // Limpiamos la lista visual antes de volver a llenarla
     transactionListEl.innerHTML = '';
     
     if (transactions.length === 0) {
-        transactionListEl.innerHTML = '<p style="color: #94a3b8; text-align: center; font-size: 0.9rem;">No hay transacciones registradas.</p>';
+        transactionListEl.innerHTML = '<p style="color: #94a3b8; text-align: center; margin-top: 2rem;">No hay movimientos registrados aún.</p>';
     }
 
-    // Por cada transacción, creamos un elemento <li> en el HTML
     transactions.forEach((t) => {
         const li = document.createElement('li');
         li.classList.add('transaction-item', t.type === 'income' ? 'income-item' : 'expense-item');
@@ -105,46 +146,35 @@ function updateUI() {
         transactionListEl.appendChild(li);
     });
 
-    // Guardamos la lista actualizada en el disco duro del navegador
     localStorage.setItem('finanzas_transactions', JSON.stringify(transactions));
-
-    // Actualizamos el gráfico
-    renderChart();
+    
+    // Llamamos a la función que pinta ambos gráficos
+    renderCharts();
 }
 
 // ==========================================
-// 5. ESCUCHAR EL BOTÓN "AÑADIR TRANSACCIÓN"
+// 5. MANEJO DE EVENTOS (Formulario y Borrado)
 // ==========================================
 form.addEventListener('submit', function(e) {
-    e.preventDefault(); // Evita que la página parpadee o se recargue
+    e.preventDefault();
 
-    // Armamos un paquete con los datos que escribió el usuario
     const newTransaction = {
-        id: Date.now(), // Un identificador único usando la fecha y hora
+        id: Date.now(),
         description: descriptionInput.value,
         amount: parseFloat(amountInput.value),
         type: typeSelect.value,
         category: categorySelect.value
     };
 
-    // Metemos el paquete a nuestra lista principal
     transactions.push(newTransaction);
-    
-    // Actualizamos toda la pantalla
     updateUI();
-    
-    // Vaciamos las casillas del formulario para escribir uno nuevo
     form.reset();
 });
 
-// ==========================================
-// 6. FUNCIÓN PARA BORRAR UN REGISTRO
-// ==========================================
 window.removeTransaction = function(id) {
-    // Filtramos la lista para dejar todos EXCEPTO el que tenga el ID que queremos borrar
     transactions = transactions.filter(t => t.id !== id);
     updateUI();
 }
 
-// Cuando la página carga por primera vez, ejecutamos esta función para que pinte todo
+// Inicialización de la app
 updateUI();
